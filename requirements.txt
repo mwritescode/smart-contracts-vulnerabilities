@@ -1,1 +1,9 @@
 web3
+numpy
+matplotlib
+pandas
+seaborn
+tqdm
+pytorch
+torchvision
+cudatoolkit=11.3
