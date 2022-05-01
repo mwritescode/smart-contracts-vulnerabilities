@@ -6,4 +6,9 @@ seaborn
 tqdm
 pytorch
 torchvision
+torchinfo
+scikit-learn
+tensorboard
+python-dotenv
+yacs
 cudatoolkit=11.3
