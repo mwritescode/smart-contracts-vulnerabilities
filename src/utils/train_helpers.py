@@ -1,6 +1,7 @@
+import torch
 from src.utils.registry import REGISTRY
 
-@REGISTRY.register('resnet_train_helper')
+@REGISTRY.register('default_train_helper')
 class TrainStepHelper:
     def __init__(self, model, criterion, device):
         self.model = model
@@ -12,8 +13,8 @@ class TrainStepHelper:
         }
     
     def step(self, data, mode='train'):
-        images = data[0].to(self.device)
-        labels = data[1].to(self.device)
+        images = data['image'].to(self.device)
+        labels = data['label'].to(self.device)
 
         outputs = self.model(images)
         loss = self.criterion(outputs, labels)
@@ -33,8 +34,8 @@ class InceptionTrainHelper(TrainStepHelper):
         super().__init__(model, criterion, device)
     
     def step(self, data, mode='train'):
-        images = data[0].to(self.device)
-        labels = data[1].to(self.device)
+        images = data['image'].to(self.device)
+        labels = data['label'].to(self.device)
 
         if mode == 'train':
             outputs, aux_outputs = self.model(images)
@@ -48,3 +49,21 @@ class InceptionTrainHelper(TrainStepHelper):
         self.total_loss[mode] += loss.item()
         preds = (outputs >= 0.0).float()
         return preds, labels, self.total_loss[mode], loss
+
+@REGISTRY.register('multitask_train_helper')
+class MultitaskTrainHelper(TrainStepHelper):
+    def __init__(self, model, criterion, device):
+        super(MultitaskTrainHelper, self).__init__(model, criterion, device)
+    
+    def step(self, data, mode='train'):
+        images = data['image'].to(self.device)
+        labels = [out.to(self.device) for out in torch.tensor_split(data['label'], data['label'].shape[1], dim=1)]
+
+        outputs = self.model(images)
+        loss = 0.0
+        for out, label in zip(outputs, labels):
+            loss += self.criterion(out, label)
+
+        self.total_loss[mode] += loss.item()
+        preds = (torch.hstack(outputs) >= 0.0).float()
+        return preds, torch.hstack(labels), self.total_loss[mode], loss

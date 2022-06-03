@@ -1,0 +1,39 @@
+DATASET:
+  AUGUMENTATION: false
+  BINARY_LABELS: false
+  IMG_SHAPE: 224
+  LOADER:
+    BATCH_SIZE: 16
+  MAX_SEQ_LEN: 512
+  RGB_IMAGES: true
+  USE_IMAGENET_STATS: false
+MODEL:
+  NAME: resnet
+  N_CLASSES: 5
+TRAINING:
+  CHECKPOINTS:
+    DECREASING: false
+    MONITOR: val_acc
+    PATH: checkpoints/default.pkl
+    USE: true
+  EARLY_STOPPING:
+    DECREASING: false
+    MONITOR: val_acc
+    PATIENCE: 3
+    USE: true
+  LAYERS_TO_FINETUNE: 6
+  LOGGER:
+    RUN_TAG: default
+    USE: true
+  LOSS: binary_crossentropy
+  N_EPOCHS: 30
+  OPTIMIZER:
+    LR: 0.001
+    WEIGHT_DECAY: 0.001
+  TRACK_METRICS:
+    AVERAGE: macro
+    NAMES:
+    - f1
+    - precision
+    - recall
+    USE: true

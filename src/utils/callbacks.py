@@ -131,6 +131,7 @@ class EarlyStopper(Callback):
                 logs['early_stop'] = True
                 if self.restore_best_weights:
                     self.model.load_state_dict(self.best_weights)
+                print('Early stopping triggered. Best score: {:.4f}'.format(self.best_value))
         return logs
         
     def on_train_epoch_end(self, logs={}):
@@ -145,12 +146,13 @@ class CheckpointSaver(Callback):
     def __init__(self, model, optimizer, path, monitor='val_loss', decreasing=True):
         self.model = model
         self.optimizer = optimizer
-        self.path = path
+        self.path = os.path.normpath(path)
         self.metric_name = monitor
         self.decreasing = decreasing
         self.best_value = -float('inf')
-        if not os.path.exists(path):
-            os.mkdir(path)
+        folder_path = os.path.join(*self.path.split('\\')[:-1])
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
 
     def __make_checkpoint(self, logs, mode='train'):
         if mode in self.metric_name:
@@ -163,7 +165,7 @@ class CheckpointSaver(Callback):
                     'model_state_dict': self.model.state_dict(),
                     'optimizer_state_dict': self.optimizer.state_dict(),
                     'loss': logs['train']['loss'],
-                    }, os.path.join(self.path, self.model.name + '.pt'))
+                    }, os.path.join(self.path))
         
     def on_train_epoch_end(self, logs={}):
         self.__make_checkpoint(logs, mode='train')
