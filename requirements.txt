@@ -1,14 +1,11 @@
-web3
 numpy
 matplotlib
 pandas
 seaborn
 tqdm
-pytorch
-torchvision
 torchinfo
 scikit-learn
 tensorboard
-python-dotenv
+hexbytes
+datasets[vision]
 yacs
-cudatoolkit=11.3
