@@ -14,27 +14,31 @@ TRAINING:
   CHECKPOINTS:
     DECREASING: false
     MONITOR: val_acc
-    PATH: checkpoints/default.pkl
+    PATH: checkpoints/<config_name>.pkl
     USE: true
   EARLY_STOPPING:
-    DECREASING: false
-    MONITOR: val_acc
-    PATIENCE: 3
+    DECREASING: true
+    MONITOR: val_loss
+    PATIENCE: 10
     USE: true
-  TRAIN_FROM_SCRATCH: false
   LAYERS_TO_FINETUNE: 6
   LOGGER:
-    RUN_TAG: default
+    RUN_TAG: <config_name>
     USE: true
   LOSS: binary_crossentropy
   N_EPOCHS: 30
   OPTIMIZER:
     LR: 0.001
-    WEIGHT_DECAY: 0.001
+    MOMENTUM: 0.9
+    NAME: adam
+    WEIGHT_DECAY: 0.0001
   TRACK_METRICS:
-    AVERAGE: [macro]
+    AVERAGE:
+    - macro
+    - micro
     NAMES:
     - f1
     - precision
     - recall
     USE: true
+  TRAIN_FROM_SCRATCH: false
