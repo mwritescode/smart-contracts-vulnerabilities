@@ -21,6 +21,7 @@ TRAINING:
     MONITOR: val_acc
     PATIENCE: 3
     USE: true
+  TRAIN_FROM_SCRATCH: false
   LAYERS_TO_FINETUNE: 6
   LOGGER:
     RUN_TAG: default
@@ -31,7 +32,7 @@ TRAINING:
     LR: 0.001
     WEIGHT_DECAY: 0.001
   TRACK_METRICS:
-    AVERAGE: macro
+    AVERAGE: [macro]
     NAMES:
     - f1
     - precision

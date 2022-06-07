@@ -150,7 +150,7 @@ class CheckpointSaver(Callback):
         self.metric_name = monitor
         self.decreasing = decreasing
         self.best_value = -float('inf')
-        folder_path = os.path.join(*self.path.split('\\')[:-1])
+        folder_path = os.path.join(*self.path.split(os.sep)[:-1])
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 

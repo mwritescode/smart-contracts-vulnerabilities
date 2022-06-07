@@ -20,6 +20,7 @@ __C.DATASET.LOADER.BATCH_SIZE = 16
 
 __C.TRAINING = ConfigurationNode()
 __C.TRAINING.N_EPOCHS = 30
+__C.TRAINING.TRAIN_FROM_SCRATCH = False
 __C.TRAINING.LAYERS_TO_FINETUNE = 6
 #__C.TRAINING.UNFREEZE_LAYERS = True
 #__C.TRAINING.UNFREEZE_LAYERS_AT_EPOCH = 5
@@ -48,7 +49,7 @@ __C.TRAINING.LOGGER.RUN_TAG = '<config_name>'
 __C.TRAINING.TRACK_METRICS = ConfigurationNode()
 __C.TRAINING.TRACK_METRICS.USE = True
 __C.TRAINING.TRACK_METRICS.NAMES = ('f1', 'precision', 'recall')
-__C.TRAINING.TRACK_METRICS.AVERAGE = ('macro') #Optionally change to/add micro and weighted
+__C.TRAINING.TRACK_METRICS.AVERAGE = ['macro'] #Optionally change to/add micro and weighted
 
 def get_cfg_defaults():
     """
