@@ -25,6 +25,38 @@ from src.utils.callbacks import MetricsCallback, EarlyStopper, TensorBoardLogger
 IMAGENET_MEAN = [0.485, 0.456, 0.406] 
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
+whitelist_weight_modules = (torch.nn.Linear, torch.nn.Conv1d, torch.nn.Conv2d)
+blacklist_weight_modules = (torch.nn.LayerNorm, torch.nn.BatchNorm1d, torch.nn.BatchNorm2d)
+
+def get_weight_decay_params(model):
+    """ Adapted from the implementation at https://github.com/karpathy/minGPT/blob/3ed14b2cec0dfdad3f4b2831f2b4a86d11aef150/mingpt/model.py#L136"""
+    decay = set()
+    no_decay = set()
+    for module_name, module in model.named_modules():
+        for param_name, _ in module.named_parameters():
+            fpn = '%s.%s' % (module_name, param_name) if module_name else param_name # full param name
+
+            if param_name.endswith('bias'):
+                # all biases will not be decayed
+                no_decay.add(fpn)
+            elif param_name.endswith('weight') and isinstance(module, whitelist_weight_modules):
+                # weights of whitelist modules will be weight decayed
+                decay.add(fpn)
+            elif param_name.endswith('weight') and isinstance(module, blacklist_weight_modules):
+                # weights of blacklist modules will NOT be weight decayed
+                no_decay.add(fpn)
+
+    # validate that we considered every parameter
+    param_dict = {pn: p for pn, p in model.named_parameters()}
+    inter_params = decay & no_decay
+    union_params = decay | no_decay
+    assert len(inter_params) == 0, "parameters %s made it into both decay/no_decay sets!" % (str(inter_params), )
+    assert len(param_dict.keys() - union_params) == 0, "parameters %s were not separated into either decay/no_decay set!" \
+                                                % (str(param_dict.keys() - union_params), )
+
+    return sorted(list(decay)), sorted(list(no_decay))
+
+
 def train_pipeline(args):
     train_ds = load_dataset("mwritescode/slither-audited-smart-contracts", 'big-multilabel', split='train', ignore_verifications=True)
     val_ds = load_dataset("mwritescode/slither-audited-smart-contracts", 'big-multilabel', split='validation', ignore_verifications=True)
@@ -116,10 +148,23 @@ def train_pipeline(args):
                         shuffle=False)
 
     trainer = Trainer(model=model, train_dataloader=loader_train, val_dataloader=loader_val, train_helper=train_heper)
-    optimizer = optim.Adam(
-        model.parameters(), 
-        lr=cfg.TRAINING.OPTIMIZER.LR,
-        weight_decay=cfg.TRAINING.OPTIMIZER.WEIGHT_DECAY)
+
+    decay, no_decay = get_weight_decay_params(model)
+    optim_groups = [
+        {'params': decay, 'weight_decay': cfg.TRAINING.OPTIMIZER.WEIGHT_DECAY},
+        {'params': no_decay, 'weight_decay': 0.0}
+    ]
+
+    if cfg.TRAINING.OPTIMIZER.NAME.lower() == 'adam':
+        optimizer = optim.Adam(
+            optim_groups, 
+            lr=cfg.TRAINING.OPTIMIZER.LR)
+    else:
+        optimizer = optim.SGD(
+            optim_groups, 
+            lr=cfg.TRAINING.OPTIMIZER.LR,
+            momentum=cfg.TRAINING.OPTIMIZER.MOMENTUM,
+            nesterov=True)
 
     if 'crossentropy' not in cfg.TRAINING.LOSS:
         criterion = REGISTRY[cfg.TRAINING.LOSS]()
