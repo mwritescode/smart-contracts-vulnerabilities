@@ -53,8 +53,11 @@ def get_weight_decay_params(model):
     assert len(inter_params) == 0, "parameters %s made it into both decay/no_decay sets!" % (str(inter_params), )
     assert len(param_dict.keys() - union_params) == 0, "parameters %s were not separated into either decay/no_decay set!" \
                                                 % (str(param_dict.keys() - union_params), )
+    
+    decay =  [param_dict[pn] for pn in sorted(list(decay))]
+    no_decay =  [param_dict[pn] for pn in sorted(list(no_decay))]
 
-    return sorted(list(decay)), sorted(list(no_decay))
+    return decay, no_decay
 
 
 def train_pipeline(args):
