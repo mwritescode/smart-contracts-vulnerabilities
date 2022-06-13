@@ -124,7 +124,7 @@ def train_pipeline(args):
     model_name = cfg.MODEL.NAME
 
     if 'multitask' in model_name:
-        backbone_name = model_name.split('_')[1:]
+        backbone_name = '_'.join(model_name.split('_')[1:])
         backbone = REGISTRY[backbone_name](classify=False, num_classes=num_cls)
         model = MultitaskModel(backbone=backbone, head=Head)
         train_heper = REGISTRY['multitask_train_helper']

@@ -15,8 +15,8 @@ class InceptionModel(nn.Module):
         return self.inception(inputs)
     
     def get_layer_groups(self):
-        linear_layers = [elem[1] for elem in filter(lambda param_tuple: 'fc' in param_tuple[0], self.resnet.named_parameters())]
-        other_layers = [elem[1] for elem in filter(lambda param_tuple: 'fc' not in param_tuple[0], self.resnet.named_parameters())]
+        linear_layers = [elem[1] for elem in filter(lambda param_tuple: 'fc' in param_tuple[0], self.inception.named_parameters())]
+        other_layers = [elem[1] for elem in filter(lambda param_tuple: 'fc' not in param_tuple[0], self.inception.named_parameters())]
         param_groups = {
             'classifier': linear_layers,
             'feature_extractor': other_layers 
