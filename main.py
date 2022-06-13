@@ -16,8 +16,7 @@ from src.data.stats import GetMeanStd
 from src.utils.registry import REGISTRY
 from src.utils.trainer import Trainer
 from src.modeling.solver.loss import SigmoidFocalLoss
-from src.modeling.network import MultitaskModel, Head
-from src.modeling.network.backbone import ResNet1D, ResNetModel, InceptionModel
+from src.modeling.network.backbone import ResNet1D, ResNetModel, InceptionModel, LSTMNetwork
 from src.data.transform import generate_image_and_binary_label, generate_image_and_label
 from src.data.transform import generate_signal_and_binary_label, generate_signal_and_label
 from src.utils.callbacks import MetricsCallback, EarlyStopper, TensorBoardLogger, CheckpointSaver
@@ -25,8 +24,8 @@ from src.utils.callbacks import MetricsCallback, EarlyStopper, TensorBoardLogger
 IMAGENET_MEAN = [0.485, 0.456, 0.406] 
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
-whitelist_weight_modules = (torch.nn.Linear, torch.nn.Conv1d, torch.nn.Conv2d)
-blacklist_weight_modules = (torch.nn.LayerNorm, torch.nn.BatchNorm1d, torch.nn.BatchNorm2d)
+whitelist_weight_modules = (torch.nn.Linear, torch.nn.Conv1d, torch.nn.Conv2d, nn.LSTM)
+blacklist_weight_modules = (torch.nn.LayerNorm, torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, nn.Embedding)
 
 def get_weight_decay_params(model):
     """ Adapted from the implementation at https://github.com/karpathy/minGPT/blob/3ed14b2cec0dfdad3f4b2831f2b4a86d11aef150/mingpt/model.py#L136"""
@@ -36,13 +35,13 @@ def get_weight_decay_params(model):
         for param_name, _ in module.named_parameters():
             fpn = '%s.%s' % (module_name, param_name) if module_name else param_name # full param name
 
-            if param_name.endswith('bias'):
+            if 'bias' in param_name:
                 # all biases will not be decayed
                 no_decay.add(fpn)
-            elif param_name.endswith('weight') and isinstance(module, whitelist_weight_modules):
+            elif 'weight' in param_name and isinstance(module, whitelist_weight_modules):
                 # weights of whitelist modules will be weight decayed
                 decay.add(fpn)
-            elif param_name.endswith('weight') and isinstance(module, blacklist_weight_modules):
+            elif 'weight' in param_name and isinstance(module, blacklist_weight_modules):
                 # weights of blacklist modules will NOT be weight decayed
                 no_decay.add(fpn)
 
@@ -104,40 +103,47 @@ def train_pipeline(args):
             transforms.Normalize(mean=mean, std=std),
         ])
 
+    padding_val = 0 if cfg.DATASET.NORMALIZE else 256
+
     def img_label_to_tensor(examples):
-        if cfg.DATASET.RGB_IMAGES:
-            examples['image'] = [img_transform(elem) for elem in examples['image']]
-        else:
-            examples['image'] = [np.pad(img, pad_width=(0, max_len - len(img))) if len(img) < max_len else img[:max_len] for img in examples['image']]
-            examples['image'] = [torch.unsqueeze(normalize(torch.tensor(img).float(), dim=0), dim=0) for img in examples['image']]
+        if 'image' in examples.keys():
+            if cfg.DATASET.RGB_IMAGES:
+                examples['image'] = [img_transform(elem) for elem in examples['image']]
+            else:
+                examples['image'] = [np.pad(img, pad_width=(0, max_len - len(img)), constant_values=padding_val) if len(img) < max_len else img[:max_len] for img in examples['image']]
+                if cfg.DATASET.NORMALIZE:
+                    examples['image'] = [torch.unsqueeze(normalize(torch.tensor(img).float(), dim=0), dim=0) for img in examples['image']]
+                else:
+                    examples['image'] = [torch.tensor(img) for img in examples['image']]
         
-        if cfg.DATASET.BINARY_LABELS:
-            examples['label'] = torch.unsqueeze(examples['label'], -1)
-        else:
-            examples['label'] = torch.tensor(examples['label'])
-        return examples
+        if 'label' in examples.keys():
+            if cfg.DATASET.BINARY_LABELS:
+                examples['label'] = torch.unsqueeze(examples['label'], -1)
+            else:
+                examples['label'] = torch.tensor(examples['label'])
+            return examples
 
     train_ds.set_transform(img_label_to_tensor)
     val_ds.set_transform(img_label_to_tensor)
 
+    if cfg.TRAINING.OPTIMIZER.USE_WEIGHTS:
+        pos_weights = (train_ds['label'] == 0.0).sum(dim=0) / (train_ds['label']).sum(dim=0)
+        pos_weights = pos_weights.to('cuda')
+    else:
+        pos_weights = None
+
     num_cls = cfg.MODEL.N_CLASSES
     model_name = cfg.MODEL.NAME
 
-    if 'multitask' in model_name:
-        backbone_name = '_'.join(model_name.split('_')[1:])
-        backbone = REGISTRY[backbone_name](classify=False, num_classes=num_cls)
-        model = MultitaskModel(backbone=backbone, head=Head)
-        train_heper = REGISTRY['multitask_train_helper']
-    else:
-        model = REGISTRY[model_name](num_classes=num_cls)
-        train_heper = REGISTRY['inception_train_helper'] if 'inception' in model_name else REGISTRY['default_train_helper']
+    model = REGISTRY[model_name](num_classes=num_cls)
+    train_heper = REGISTRY['inception_train_helper'] if 'inception' in model_name else REGISTRY['default_train_helper']
     
     if not cfg.TRAINING.TRAIN_FROM_SCRATCH:
         param_groups = model.get_layer_groups()
         for param in param_groups['feature_extractor'][:-cfg.TRAINING.LAYERS_TO_FINETUNE]:
             param.requires_grad = False
 
-    print(summary(model))
+    summary(model)
 
     batch_size = cfg.DATASET.LOADER.BATCH_SIZE
 
@@ -172,7 +178,7 @@ def train_pipeline(args):
     if 'crossentropy' not in cfg.TRAINING.LOSS:
         criterion = REGISTRY[cfg.TRAINING.LOSS]()
     else:
-        criterion = nn.BCEWithLogitsLoss()
+        criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weights)
 
     trainer.compile(loss=criterion, optimizer=optimizer, metrics={'acc': accuracy_score})
 
