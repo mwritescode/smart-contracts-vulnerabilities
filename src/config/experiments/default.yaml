@@ -5,6 +5,7 @@ DATASET:
   LOADER:
     BATCH_SIZE: 16
   MAX_SEQ_LEN: 512
+  NORMALIZE: true
   RGB_IMAGES: true
   USE_IMAGENET_STATS: false
 MODEL:
@@ -17,8 +18,8 @@ TRAINING:
     PATH: checkpoints/<config_name>.pkl
     USE: true
   EARLY_STOPPING:
-    DECREASING: true
-    MONITOR: val_loss
+    DECREASING: false
+    MONITOR: val_acc
     PATIENCE: 10
     USE: true
   LAYERS_TO_FINETUNE: 6
@@ -26,11 +27,12 @@ TRAINING:
     RUN_TAG: <config_name>
     USE: true
   LOSS: binary_crossentropy
-  N_EPOCHS: 30
+  N_EPOCHS: 100
   OPTIMIZER:
     LR: 0.001
     MOMENTUM: 0.9
-    NAME: adam
+    NAME: sgd
+    USE_WEIGHTS: false
     WEIGHT_DECAY: 0.0001
   TRACK_METRICS:
     AVERAGE:

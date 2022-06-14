@@ -16,10 +16,13 @@ def __get_one_hot_encoded_label(label):
 
 def __get_RGB_image(bytecode):
     image = np.frombuffer(bytecode, dtype=np.uint8)
-    sqrt_len = int(math.ceil(math.sqrt(len(image))))
-    image = np.pad(image, pad_width=(0, sqrt_len**2 - len(image)))
-    image = np.reshape(image, (sqrt_len, sqrt_len))
-    image = Image.fromarray(image).convert('RGB')
+    length = int(math.ceil(len(image)/3))
+    image = np.pad(image, pad_width=(0, length*3 - len(image)))
+    image = image.reshape((-1, 3))
+    sqrt_len = int(math.ceil(math.sqrt(image.shape[0])))
+    image = np.pad(image,  pad_width=((0, sqrt_len**2 - image.shape[0]),(0,0)))
+    image = image.reshape((sqrt_len, sqrt_len, 3))
+    image = Image.fromarray(image)
     return image
 
 def generate_image_and_label(example):
