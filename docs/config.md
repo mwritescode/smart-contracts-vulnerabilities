@@ -1,0 +1,41 @@
+## Creating a YAML configuration file
+---
+In order to start a training for this project you first need to provied a YAML configuration script which specifies your dataset, data loader and training parameters. An example of such a file can be found in [default.yaml](https://github.com/mwritescode/smart-contracts-vulnerabilities/blob/main/src/config/experiments/default.yaml). The possible configuration parameters are explained below in more details:
+
+- `MODEL`:
+  - `NAME`: str, the name of the model to use. Can be only "resnet", "inception", "rnn" and "1d_resnet".
+  - `N_CLASSES`: int, the number of classes to predict.
+- `DATASET`:
+  - `RBG_IMAGES`: bool, whether to preprocess dataset transforming the bytecodes to RGB images or not.
+  - `IMG_SHAPE`: int, when `RBG_IMAGES` is True the images will be resized to (`IMG_SHAPE`, `IMG_SHAPE`).
+  - `USE_IMAGENET_STATS`: bool, whether to normalize the images using the ImageNet mean and std or to compute our own.
+  - `AUGMENTATION`: bool, whether to apply data augmentation or not.
+  - `BINARY_LABELS`: bool, whether to produce binary ("vulnerable", "safe") or multi-label ground truths.
+  - `NORMALIZE`: bool, whether the input bytecode should be normalized or not. Typically it's False only when `MODEL.NAME` = "rnn" because we want to feed integers to an LSTM.
+  - `MAX_SEQ_LEN`: int, the maximum length that a bytecode sequence can have when `RBG_IMAGES` is False.
+  - `LOADER`:
+    - `BATCH_SIZE`: int, the batch size to use during training
+- `TRAINING`:
+  - `OPTIMIZER`:
+    - `NAME`: str, the name of the optimizer to use. Can be either "sgd" or "adam".
+    - `LR`: float, learning rate to use during training.
+    - `WEIGHT_DECAY`: float, L2 penalty to add to conv and linear weights during training.
+    - `MOMENTUM`: float, the momentum value for SGD.
+    - `USE_WEIGHTS`: bool, whether to compute and use class weights.
+  - `EARLY_STOPPING`:
+    - `USE`: bool, whether to use this callback or not.
+    - `MONITOR`: str, the name of the metric that should be monitored (i.e.: "val_loss", "val_acc", etc..)
+    - `DECREASING`: bool, whether the metric decreasing in value implies an improvement in performance or not.
+    - `PATIENCE`: int, the number of epochs we should wait before stopping the training in case of no improvements.
+  - `CHECKPOINTS`:
+    - `USE`: bool, whether to use this callback or not.
+    - `MONITOR`: str, the name of the metric that should be monitored (i.e.: "val_loss", "val_acc", etc..)
+    - `DECREASING`: bool, whether the metric decreasing in value implies an improvement in performance or not.
+    - `PATH`: str, the path to the .pkl file where the checkpoint should be stored.
+  - `LOGGER`:
+    - `USE`: bool, whether to use this callback or not.
+    - `RUN_TAG`: str, the name of the folder where TensorBoard will save the results related to this experiment.
+  - `TRACK_METRICS`:
+    - `USER`: bool, whether to use this callback or not.
+    - `NAMES`: list of strings, the names of the metrics that should be tracked. Note that the list can only contain "precision", "recall" and "f1".
+    - `AVERAGE`: list of strings, the way in which the metrics for every class are aggregated together in case of multi-class/multi-label classification.
