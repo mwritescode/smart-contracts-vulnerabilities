@@ -4,6 +4,8 @@
 ![Jupyter](https://img.shields.io/badge/Jupyter-F37626.svg?&style=for-the-badge&logo=Jupyter&logoColor=white)
 ![Pytorch](https://img.shields.io/badge/Pytorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
 
+>**Note** <br/> This research has been accepted as a poster at the Fourth ACM International Workshop on Blockchain-enabled Networked Sensor Systems (BlockSys 2022) co-located with the SenSys conference in Boston (USA). You can find the workshop program [here](https://acmblocksys.github.io/blocksys2022/BlockSys-Program-2022.pdf), while [here](https://drive.google.com/file/d/1tnYOik6BN9ncQapyT1bL6JneEKbWZCGF/view?usp=sharing) you can watch a recording of the presentation.
+
 # Smart Contracts Vulnerability Classification
 In this project we explored deep learning techniquess, and in particular CNNs, for the detection and classification of vulnerabilities in smart contracts deployed on the Ethereum main net.
 
