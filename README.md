@@ -125,7 +125,7 @@ pip install -r requirements.txt
 In order to start a training, simply create a .yaml config file according to [these](https://github.com/mwritescode/smart-contracts-vulnerabilities/blob/main/docs/config.md) specifications and then run
 
 ```sh
-python main.py --cfg_path path/to/your/config/file.yaml
+python main.py path/to/your/config/file.yaml
 ```
 
 ## References
